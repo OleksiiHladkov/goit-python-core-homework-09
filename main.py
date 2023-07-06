@@ -1,88 +1,141 @@
+import re
+
 contacts = {}
 
 
-def split_string(value:str) -> list:
-    result = []
+def parcing_data(value:str) -> dict:
+    result = {"command": ""}
+
+    find_command = False
+    count = 1
+    start = 0
     
-    lst = value.split(" ")
-    
-    if len(lst) >= 2:
-        if (lst[0] == "good" and lst[1] == "bye") or (lst[0] == "show" and lst[1] == "all"):
-            result.append(lst[0] + " " + lst[1])
-        else:
-            result = lst.copy()
-    else:
-        result = lst.copy()
+    for lit in value:
+        
+        is_finish = (count == len(value))
+        first_coundition = (lit == " " or is_finish)
+        second_coundition = (lit.isnumeric() or lit == "+")
+        
+        chunk = value[start:count].strip()
+        
+        if first_coundition and not find_command:
+            
+            if chunk in tuple(COMMANDS.keys()):
+                find_command = True
+                result["command"] = chunk
+                start = count
+        elif (second_coundition or is_finish) and find_command:
+            if is_finish:
+                if chunk:
+                    result["name"] = chunk
+            else:
+                if chunk[:-1].strip():
+                    result["name"] = chunk[:-1].strip()
+                if value[count-1:len(value)]:
+                    result["phone"] = value[count-1:len(value)]
+            break
+
+        count += 1
 
     return result
 
 
-def command_hello(string:str) -> tuple:
-    lst = split_string(string)
+def chek_phone(phone):
+    result = re.findall(
+        r"(\+\d{1,3}\(\d{2}\)\d{3}\-(?:\d{2}\-\d{2}|\d{1}\-\d{3}))", phone)
+    return result == list()
+
+
+def input_error(handler_func):
+    def inner_func(**kwargs):
+        try:
+            result = handler_func(**kwargs)
+            
+            value_error_types = ""
+            command = kwargs["command"]
+            name = kwargs["name"]
+            phone = kwargs["phone"]
+            
+            if command == "add":
+                if name in tuple(contacts.keys()):
+                    value_error_types = "name_find"
+                    raise ValueError()
+            
+            if command == "change" or command == "phone":
+                if not name in tuple(contacts.keys()):
+                    value_error_types = "name_not_find"
+                    raise ValueError()
+
+            if command == "add" or command == "change":
+                if phone in tuple(contacts.values()):
+                    value_error_types = "phone_find"
+                    raise ValueError()
+                
+                if chek_phone(kwargs["phone"]):
+                    value_error_types = "phone_format"
+                    raise ValueError()
+
+        except KeyError as key:
+            result = "failure", f"You must enter {key}"
+        except ValueError:
+            if value_error_types == "phone_format":
+                result = "failure", "Phone number must be in format '+[country code]([town code])[number]'. For example: '+380(66)111-1-111' or '+380(66)111-11-11'"
+            if value_error_types == "name_find":
+                result = "failure", f"Name '{name}' is already use"
+            if value_error_types == "phone_find":
+                result = "failure", f"Phone '{phone}' is already use"
+            if value_error_types == "name_not_find":
+                result = "failure", f"Name '{name}' is not find"
+
+        return result
+    return inner_func
+
+
+def command_hello(**kwargs) -> tuple:
+    return "hello", "How can I help you?"
+
+
+@input_error
+def command_add(**kwargs) -> tuple:
+    name = kwargs["name"]
+    phone = kwargs["phone"]
+    contacts[name] = phone
+    return "success", f"Successfully added contact '{name}' with number '{phone}'"
+
+
+@input_error
+def command_change(**kwargs) -> tuple:
+    name = kwargs["name"]
+    phone = kwargs["phone"]
+    contacts[name] = phone
+    return "success", f"Successfully changed contact '{name}' with number '{phone}'"
     
-    if lst[0] == "hello":
-        return "hello", "How can I help you?"
+
+@input_error
+def command_phone(**kwargs) -> tuple:
+    name = kwargs["name"]
+    phone = contacts.get(name)
+    
+    if phone:
+        return "success", f"Successfully finded number '{phone}' by contact '{name}'"
     else:
-        return "", ""
+        return "failure", ""
 
 
-def command_add(string:str) -> tuple:
-    lst = split_string(string)
+def command_show_all(**kwargs) -> tuple:
+    result = ""
     
-    if lst[0] == "add":
-        contact = lst[1]
-        number = lst[2]
-        contacts[contact] = number
-        return "success", f"Successfully added contact \"{contact}\" with number \"{number}\""
-    else:
-        # return "false", f"Sorry, can't add contact \"{contact}\" with number \"{number}\""
-        return "false", ""
+    for name, phone in contacts.items():
+        result += f"{name}: {phone}\n"
     
-
-def command_change(string:str) -> tuple:
-    lst = split_string(string)
-
-    if lst[0] == "change":
-        contact = lst[1]
-        number = lst[2]
-        contacts[contact] = number
-        return "success", f"Successfully changed contact \"{contact}\" with number \"{number}\""
-    else:
-        # return "false", f"Sorry, can't chang contact \"{contact}\" with number \"{number}\""
-        return "false", ""
-    
-
-def command_phone(string:str) -> tuple:
-    lst = split_string(string)
-
-    if lst[0] == "phone":
-        contact = lst[1]
-        number = contacts.get(contact)
-        return "success", f"Successfully finded number \"{number}\" by contact \"{contact}\""
-    else:
-        # return "false", f"Sorry, can't find number by contact \"{contact}\""
-        return "false", ""
-
-
-def command_show_all(string:str) -> tuple:
-    lst = split_string(string)
-    
-    if lst[0] == "show all":
-        result = ""
-        for contact, number in contacts.items():
-            result += f"{contact}: {number}\n"
+    if result:
         return "success", result
     else:
-        return "", ""
+        return "failure", result
 
 
-def command_exit(string:str) -> tuple:
-    lst = split_string(string)
-    
-    if lst[0] == "exit" or lst[0] == "good bye" or lst[0] == "close":
-        return "exit", "Good bye!"
-    else:
-        return "", ""
+def command_exit(**kwargs) -> tuple:
+    return "exit", "Good bye!"
 
 
 COMMANDS = {"hello": command_hello,
@@ -96,26 +149,32 @@ COMMANDS = {"hello": command_hello,
 
 
 def get_handler(command:str):
-    lst = split_string(command)
-    return COMMANDS[lst[0]]
+    return COMMANDS[command.lower()]
 
 
 def main():
     while True:
-        user_input = input("Enter command: ").lower()
+        user_input = input("Enter command: ")
         
-        handler = get_handler(user_input)
-        result = handler(user_input)
-        
-        if result[0] == "exit":
-            print(result[1])
-            break
+        command_dict = parcing_data(user_input)
 
-        print(result[1])     
+        command = command_dict.get("command", "")
+        
+        if command:
+            handler = get_handler(command)        
+            result = handler(**command_dict)
+            
+            if result[0] == "exit":
+                print(result[1])
+                break
+
+            print(result[1])
+        else:
+            print("Can not recognize a command! Please, try again.")     
 
 
 
 
 if __name__ == "__main__":
     main()
-    # print(contacts)
+    
