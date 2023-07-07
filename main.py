@@ -1,4 +1,7 @@
 import re
+from rich import print
+from rich.table import Table
+
 
 contacts = {}
 
@@ -40,7 +43,7 @@ def parcing_data(value:str) -> dict:
     return result
 
 
-def chek_phone(phone):
+def chek_phone(phone:str) -> bool:
     result = re.findall(
         r"(\+\d{1,3}\(\d{2}\)\d{3}\-(?:\d{2}\-\d{2}|\d{1}\-\d{3}))", phone)
     return result == list()
@@ -49,13 +52,17 @@ def chek_phone(phone):
 def input_error(handler_func):
     def inner_func(**kwargs):
         try:
-            result = handler_func(**kwargs)
-            
             value_error_types = ""
             command = kwargs["command"]
-            name = kwargs["name"]
-            phone = kwargs["phone"]
+
+            # KeyError chek and set variables
+            if command == "add" or command == "change":
+                name = kwargs["name"]
+                phone = kwargs["phone"]
+            elif command == "phone":
+                name = kwargs["name"]
             
+            # ValueError chek
             if command == "add":
                 if name in tuple(contacts.keys()):
                     value_error_types = "name_find"
@@ -74,68 +81,67 @@ def input_error(handler_func):
                 if chek_phone(kwargs["phone"]):
                     value_error_types = "phone_format"
                     raise ValueError()
-
+                
+            result = handler_func(**kwargs)
         except KeyError as key:
-            result = "failure", f"You must enter {key}"
+            result = f"You must enter {key}"
         except ValueError:
             if value_error_types == "phone_format":
-                result = "failure", "Phone number must be in format '+[country code]([town code])[number]'. For example: '+380(66)111-1-111' or '+380(66)111-11-11'"
+                result = "Phone number must be in format '+[country code]([town code])[number]'. For example: '+380(66)111-1-111' or '+380(66)111-11-11'"
             if value_error_types == "name_find":
-                result = "failure", f"Name '{name}' is already use"
+                result = f"Name '{name}' is already use"
             if value_error_types == "phone_find":
-                result = "failure", f"Phone '{phone}' is already use"
+                result = f"Phone '{phone}' is already use"
             if value_error_types == "name_not_find":
-                result = "failure", f"Name '{name}' is not find"
+                result = f"Name '{name}' is not find"
 
         return result
     return inner_func
 
 
-def command_hello(**kwargs) -> tuple:
-    return "hello", "How can I help you?"
+def command_hello(**kwargs) -> str:
+    return "How can I help you?"
 
 
 @input_error
-def command_add(**kwargs) -> tuple:
+def command_add(**kwargs) -> str:
     name = kwargs["name"]
     phone = kwargs["phone"]
     contacts[name] = phone
-    return "success", f"Successfully added contact '{name}' with number '{phone}'"
+    
+    return f"Successfully added contact '{name}' with number '{phone}'"
 
 
 @input_error
-def command_change(**kwargs) -> tuple:
+def command_change(**kwargs) -> str:
     name = kwargs["name"]
     phone = kwargs["phone"]
     contacts[name] = phone
-    return "success", f"Successfully changed contact '{name}' with number '{phone}'"
+    
+    return f"Successfully changed contact '{name}' with number '{phone}'"
     
 
 @input_error
-def command_phone(**kwargs) -> tuple:
+def command_phone(**kwargs) -> str:
     name = kwargs["name"]
     phone = contacts.get(name)
     
-    if phone:
-        return "success", f"Successfully finded number '{phone}' by contact '{name}'"
-    else:
-        return "failure", ""
+    return f"Successfully finded number '{phone}' by contact '{name}'"
 
 
-def command_show_all(**kwargs) -> tuple:
-    result = ""
+def command_show_all(**kwargs) -> Table:
+    result = Table(title="Contact list")
+    result.add_column("Name", justify="center",)
+    result.add_column("Phone", justify="center")
     
     for name, phone in contacts.items():
-        result += f"{name}: {phone}\n"
+        result.add_row(name, phone)
     
-    if result:
-        return "success", result
-    else:
-        return "failure", result
+    return result
 
 
-def command_exit(**kwargs) -> tuple:
-    return "exit", "Good bye!"
+def command_exit(**kwargs) -> str:
+    return "Good bye!"
 
 
 COMMANDS = {"hello": command_hello,
@@ -164,11 +170,11 @@ def main():
             handler = get_handler(command)        
             result = handler(**command_dict)
             
-            if result[0] == "exit":
-                print(result[1])
+            if command in ("exit", "good bye", "close"):
+                print(result)
                 break
 
-            print(result[1])
+            print(result)
         else:
             print("Can not recognize a command! Please, try again.")     
 
