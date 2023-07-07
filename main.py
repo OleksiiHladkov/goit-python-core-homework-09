@@ -87,7 +87,7 @@ def input_error(handler_func):
             result = f"You must enter {key}"
         except ValueError:
             if value_error_types == "phone_format":
-                result = "Phone number must be in format '+[country code]([town code])[number]'. For example: '+380(66)111-1-111' or '+380(66)111-11-11'"
+                result = "Phone number must be in format: '+380(66)111-1-111' or '+380(66)111-11-11'"
             if value_error_types == "name_find":
                 result = f"Name '{name}' is already use"
             if value_error_types == "phone_find":
@@ -130,7 +130,7 @@ def command_phone(**kwargs) -> str:
 
 
 def command_show_all(**kwargs) -> Table:
-    result = Table(title="Contact list")
+    result = Table(title="Contacts list")
     result.add_column("Name", justify="center",)
     result.add_column("Phone", justify="center")
     
@@ -171,12 +171,12 @@ def main():
             result = handler(**command_dict)
             
             if command in ("exit", "good bye", "close"):
-                print(result)
+                print(result, "\n")
                 break
 
-            print(result)
+            print(result, "\n")
         else:
-            print("Can not recognize a command! Please, try again.")     
+            print("Can not recognize a command! Please, try again.", "\n")     
 
 
 
