@@ -8,7 +8,7 @@ contacts = {}
 
 def parcing_data(value:str) -> dict:
     """
-    Allows to parcing string value, which separated by space.
+    Allows to parcing string value, which chunks separated by space.
     Allows to use 'name', which consists of two or more words.
     Available value format: '[command] [name] [phone]' or '[command] [first_name last_name] [phone]'.
     """
