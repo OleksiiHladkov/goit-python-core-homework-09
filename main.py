@@ -7,6 +7,12 @@ contacts = {}
 
 
 def parcing_data(value:str) -> dict:
+    """
+    Allows to parcing string value, which separated by space.
+    Allows to use 'name', which consists of two or more words.
+    Available value format: '[command] [name] [phone]' or '[command] [first_name last_name] [phone]'.
+    """
+    
     result = {"command": ""}
 
     find_command = False
@@ -44,8 +50,14 @@ def parcing_data(value:str) -> dict:
 
 
 def chek_phone(phone:str) -> bool:
+    # difficult variant
+    # result = re.findall(
+    #     r"(\+\d{1,3}\(\d{2}\)\d{3}\-(?:\d{2}\-\d{2}|\d{1}\-\d{3}))", phone)
+    
+    # easy variant
     result = re.findall(
-        r"(\+\d{1,3}\(\d{2}\)\d{3}\-(?:\d{2}\-\d{2}|\d{1}\-\d{3}))", phone)
+        r"(\+\d{1,3}\d{2}\d{6,8})", phone)
+    
     return result == list()
 
 
@@ -87,7 +99,10 @@ def input_error(handler_func):
             result = f"You must enter {key}"
         except ValueError:
             if value_error_types == "phone_format":
-                result = "Phone number must be in format: '+380(66)111-1-111' or '+380(66)111-11-11'"
+                # difficult variant
+                # result = "Phone number must be in format: '+380(66)111-1-111' or '+380(66)111-11-11'"
+                # easy variant
+                result = "Phone number must be in format '+\[country]\[town]\[number]'. Examples: '+380661234567' or '+442012345678'"
             if value_error_types == "name_find":
                 result = f"Name '{name}' is already use"
             if value_error_types == "phone_find":
