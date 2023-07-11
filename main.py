@@ -50,11 +50,6 @@ def parcing_data(value:str) -> dict:
 
 
 def chek_phone(phone:str) -> bool:
-    # difficult variant
-    # result = re.findall(
-    #     r"(\+\d{1,3}\(\d{2}\)\d{3}\-(?:\d{2}\-\d{2}|\d{1}\-\d{3}))", phone)
-    
-    # easy variant
     result = re.findall(
         r"(\+\d{1,3}\d{2}\d{6,8})", phone)
     
@@ -64,52 +59,15 @@ def chek_phone(phone:str) -> bool:
 def input_error(handler_func):
     def inner_func(**kwargs):
         try:
-            value_error_types = ""
-            command = kwargs["command"]
-
-            # KeyError chek and set variables
-            if command == "add" or command == "change":
-                name = kwargs["name"]
-                phone = kwargs["phone"]
-            elif command == "phone":
-                name = kwargs["name"]
+            if kwargs.get("phone") and chek_phone(kwargs["phone"]):
+                raise ValueError()     
             
-            # ValueError chek
-            if command == "add":
-                if name in tuple(contacts.keys()):
-                    value_error_types = "name_find"
-                    raise ValueError()
-            
-            if command == "change" or command == "phone":
-                if not name in tuple(contacts.keys()):
-                    value_error_types = "name_not_find"
-                    raise ValueError()
-
-            if command == "add" or command == "change":
-                if phone in tuple(contacts.values()):
-                    value_error_types = "phone_find"
-                    raise ValueError()
-                
-                if chek_phone(kwargs["phone"]):
-                    value_error_types = "phone_format"
-                    raise ValueError()
-                
             result = handler_func(**kwargs)
         except KeyError as key:
             result = f"You must enter {key}"
         except ValueError:
-            if value_error_types == "phone_format":
-                # difficult variant
-                # result = "Phone number must be in format: '+380(66)111-1-111' or '+380(66)111-11-11'"
-                # easy variant
-                result = "Phone number must be in format '+\[country]\[town]\[number]'. Examples: '+380661234567' or '+442012345678'"
-            if value_error_types == "name_find":
-                result = f"Name '{name}' is already use"
-            if value_error_types == "phone_find":
-                result = f"Phone '{phone}' is already use"
-            if value_error_types == "name_not_find":
-                result = f"Name '{name}' is not find"
-
+            result = result = "Phone number must be in format '+\[country]\[town]\[number]'. Examples: '+380661234567' or '+442012345678'"
+        
         return result
     return inner_func
 
